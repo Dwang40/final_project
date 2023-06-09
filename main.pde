@@ -8,10 +8,10 @@ int frames;
 boolean left, right, up, down, space;
 FrameObject camera, gameWorld;
 ImageObject backImage;
-PImage forest;
+PImage forest, A, B, S, WIN;
 
 void setup() {
-  size(1435, 800);
+  size(1400, 800);
 
   left = false;
   right = false;
@@ -20,7 +20,7 @@ void setup() {
   space = false;
 
   forest = loadImage("data/background.jpg");
-  backImage = new ImageObject(0, 0, 1435, 800, forest);
+  backImage = new ImageObject(0, 0, 1400, 800, forest);
   gameWorld = new FrameObject(0, 0, backImage.w * 2, backImage.h);
   camera = new FrameObject(0, 0, width, height);
 
@@ -33,17 +33,30 @@ void setup() {
   frames = 48;
   spriteImages = new PImage[frames];
   for (int i = 0; i < frames; i++) {
-    spriteImages[i] = loadImage("data/player" + nf(i+1, 4) + ".png");
+    spriteImages[i] = loadImage("data/player" + nf(i + 1, 4) + ".png");
   }
-
-  platforms = new Platform[7];
-  platforms[0] = new Platform (300, 460, 200, 25, "safe");
-  platforms[1] = new Platform (0, 300, 200, 25, "safe");
-  platforms[2] = new Platform (600, 300, 200, 25, "safe");
-  platforms[3] = new Platform (300, 140, 200, 25, "safe");
-  platforms[4] = new Platform (824, 460, 200, 25, "safe");
-  platforms[5] = new Platform (824, 140, 200, 25, "safe");
-  platforms[6] = new Platform (0, gameWorld.h-20, gameWorld.w, 25, "death");
+  
+  A = loadImage("data/ADirt.png");
+  B = loadImage("data/BDirt.png");
+  S = loadImage("data/Spikes.png");
+  WIN = loadImage("data/win.png");
+  platforms = new Platform[15];
+  
+  platforms[0] = new Platform (0, gameWorld.h-100, gameWorld.w, 100, "safe", A);
+  platforms[1] = new Platform (300, 600, 200, 100, "safe", A);
+  platforms[2] = new Platform (300, 700, 200, 100, "safe", B);
+  platforms[3] = new Platform (500, 600, 800, 100, "death", S);
+  platforms[4] = new Platform (1300, 200, 100, 700, "safe", B);
+  platforms[5] = new Platform (700, 500, 200, 100, "safe", A);
+  platforms[6] = new Platform (1300, 200, 100, 100, "safe", A);
+  platforms[7] = new Platform (1100, 300, 200, 100, "safe", A);
+  platforms[8] = new Platform (1400, 600, 1400, 100, "death", S);
+  platforms[9] = new Platform (2700, 200, 100, 700, "safe", B);
+  platforms[10] = new Platform (2700, 200, 100, 100, "win", WIN);
+  platforms[11] = new Platform (1400, 500, 200, 100, "safe", A);
+  platforms[12] = new Platform (1800, 300, 100, 100, "safe", A);
+  platforms[13] = new Platform (2100, 300, 100, 100, "safe", A);
+  platforms[14] = new Platform (2500, 200, 100, 100, "safe", A);
 }
 
 void draw() {
@@ -52,7 +65,17 @@ void draw() {
   for (int i = 0; i < platforms.length; ++i) {
     p.collisionSide = rectangleCollisions(p, platforms[i]);
     if (p.collisionSide != "none" && platforms[i].typeof == "death") {
-      p.c = color(255,0,0);
+      if (p.x >= backImage.w) {
+        p.check1();
+      } else {
+        if (p.x >= backImage.w * 2) {
+          p.check2();
+        }
+        else p.reset();
+      }
+    }
+    if (p.collisionSide != "none" && platforms[i].typeof == "win") {
+      println("YOU WIN!");
     }
     p.checkPlatforms();
   }
@@ -84,20 +107,12 @@ void draw() {
   }
 
   popMatrix();
-  displayPositionData();
 }
 
 String rectangleCollisions(Platformer r1, Platform r2) {
-  ////r1 is the player
-  ////r2 is the platform rectangle
-  ////function returns the String collisionSide
-
-  //allow unicorn to pass through platforms.
-  //Disable if you want unicorn to bounce off bottom of platforms
-
-  if (r1.vy < 0) { 
-    return "none";
-  }
+  //r1 is the player
+  //r2 is the platform rectangle
+  //function returns the String collisionSide
 
   float dx = (r1.x + r1.w/2) - (r2.x + r2.w/2);
   float dy = (r1.y + r1.h/2) - (r2.y + r2.h/2);
@@ -106,20 +121,11 @@ String rectangleCollisions(Platformer r1, Platform r2) {
   float combinedHalfHeights = r1.halfHeight + r2.halfHeight;
 
   if (abs(dx) < combinedHalfWidths) {
-    ////collision has happened on the x axis
-    ////now check on the y axis
     if (abs(dy) < combinedHalfHeights) {
-      ////collision detected
-      //determine the overlap on each axis
       float overlapX = combinedHalfWidths - abs(dx);
       float overlapY = combinedHalfHeights - abs(dy);
-      ////the collision is on the axis with the
-      ////SMALLEST overlap
       if (overlapX >= overlapY) {
         if (dy > 0) {
-          ////move the rectangle back to eliminate overlap
-          ////before calling its display to prevent
-          ////drawing object inside each other
           r1.y += overlapY;
           return "top";
         } else {
@@ -143,12 +149,6 @@ String rectangleCollisions(Platformer r1, Platform r2) {
     //collision failed on the x axis
     return "none";
   }
-}
-
-void displayPositionData() {
-  fill(0);
-  //String s = "\nvx: "+u.vx+"  vy: ";
-  //text(s, 50, 50);
 }
 
 void keyPressed() {
